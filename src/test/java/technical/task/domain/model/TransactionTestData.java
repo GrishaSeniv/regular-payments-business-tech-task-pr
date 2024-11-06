@@ -3,6 +3,7 @@ package technical.task.domain.model;
 import technical.task.domain.model.payment_instruction.PaymentInstructionResp;
 import technical.task.domain.model.transaction.TransactionCreateReq;
 import technical.task.domain.model.transaction.TransactionResp;
+import technical.task.domain.model.transaction.TransactionUpdateReq;
 import technical.task.domain.type.TransactionStatus;
 
 import java.time.LocalDateTime;
@@ -38,5 +39,9 @@ public class TransactionTestData {
                 createdResp.transactionAmount(),
                 TransactionStatus.S
         );
+    }
+
+    public static TransactionUpdateReq createTransactionUpdateReq() {
+        return new TransactionUpdateReq(TransactionStatus.S);
     }
 }

@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.client.MockRestServiceServer;
 import technical.task.domain.exception.DebitPaymentBadRequestException;
-import technical.task.domain.model.TransactionTestData;
 import technical.task.domain.model.payment_instruction.PaymentInstructionReq;
 import technical.task.domain.model.payment_instruction.PaymentInstructionResp;
 import technical.task.domain.model.transaction.TransactionResp;
@@ -26,6 +25,9 @@ import static technical.task.domain.common.Constants.TRANSACTION_BASE_URL;
 import static technical.task.domain.common.JsonUtils.toJson;
 import static technical.task.domain.model.PaymentInstructionTestData.createPaymentInstructionReq;
 import static technical.task.domain.model.PaymentInstructionTestData.createPaymentInstructionResp;
+import static technical.task.domain.model.TransactionTestData.createTransactionResp1;
+import static technical.task.domain.model.TransactionTestData.createTransactionUpdateReq;
+import static technical.task.domain.model.TransactionTestData.updatedStornedTransactionResp;
 
 @Component
 public class PaymentProcessingControllerTest {
@@ -44,12 +46,12 @@ public class PaymentProcessingControllerTest {
 
         ResponseEntity<PaymentInstructionResp> responseEntity = paymentProcessingController.create(req);
         PaymentInstructionResp actualResp = responseEntity.getBody();
-        Assertions.assertThat(actualResp).isEqualTo(req);
+        Assertions.assertThat(actualResp).isEqualTo(expectedResp);
     }
 
     public void debitPaymentTest(MockRestServiceServer mockServer) {
         PaymentInstructionResp resp = createPaymentInstructionResp();
-        TransactionResp transactionResp1 = TransactionTestData.createTransactionResp1(resp);
+        TransactionResp transactionResp1 = createTransactionResp1(resp);
 
         // mock external rest calls to dao service(payment - getById)
         mockServer.expect(requestTo(buildURIWithId(PAYMENT_INSTRUCTION_BASE_URL, resp.id())))
@@ -73,14 +75,15 @@ public class PaymentProcessingControllerTest {
 
     public void markTransactionAsStornedTest(MockRestServiceServer mockServer) {
         PaymentInstructionResp resp = createPaymentInstructionResp();
-        TransactionResp transactionResp1 = TransactionTestData.createTransactionResp1(resp);
+        TransactionResp transactionResp1 = createTransactionResp1(resp);
         Long transactionId = transactionResp1.id();
-        TransactionResp updatedStornedTransactionResp = TransactionTestData.updatedStornedTransactionResp(transactionResp1);
+        TransactionResp updatedStornedTransactionResp = updatedStornedTransactionResp(transactionResp1);
 
         // mock external rest calls to dao service(transaction - update)
         mockServer.expect(requestTo(buildURIWithId(TRANSACTION_BASE_URL, transactionId)))
                 .andExpect(method(HttpMethod.PATCH))
-                .andRespond(withSuccess(toJson(List.of(transactionResp1)), MediaType.APPLICATION_JSON));
+                .andExpect(content().json(toJson(createTransactionUpdateReq())))
+                .andRespond(withSuccess(toJson(updatedStornedTransactionResp), MediaType.APPLICATION_JSON));
 
         ResponseEntity<TransactionResp> responseEntity = paymentProcessingController.markTransactionAsStorned(transactionId);
         Assertions.assertThat(responseEntity.getBody()).isEqualTo(updatedStornedTransactionResp);
