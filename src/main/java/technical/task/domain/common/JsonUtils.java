@@ -1,6 +1,7 @@
 package technical.task.domain.common;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,6 +14,7 @@ import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKN
 public class JsonUtils {
     private static final Logger logger = LoggerFactory.getLogger(JsonUtils.class);
     private static final ObjectMapper mapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
             .configure(FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     public static String toJson(Object obj) {

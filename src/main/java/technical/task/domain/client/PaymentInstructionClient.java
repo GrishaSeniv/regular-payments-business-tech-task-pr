@@ -38,7 +38,9 @@ public class PaymentInstructionClient {
     public PaymentInstructionResp create(PaymentInstructionReq req) {
         try {
             logger.info("[RestClient] [PaymentInstructionClient#create] with req: {}", req);
-            return restTemplate.postForObject(PAYMENT_INSTRUCTION_BASE_URL, req, PaymentInstructionResp.class);
+            PaymentInstructionResp resp = restTemplate.postForObject(PAYMENT_INSTRUCTION_BASE_URL, req, PaymentInstructionResp.class);
+            logger.info("[RestClient] [PaymentInstructionClient#create] response: {}", resp);
+            return resp;
         } catch (Exception e) {
             String msg = String.format("[RestClient] [PaymentInstructionClient#create] error: %s", e);
             logger.error(msg);
@@ -55,7 +57,9 @@ public class PaymentInstructionClient {
                     getHttpEntity(req),
                     PaymentInstructionResp.class
             );
-            return resp.getBody();
+            PaymentInstructionResp body = resp.getBody();
+            logger.info("[RestClient] [PaymentInstructionClient#update] response: {}", body);
+            return body;
         } catch (Exception e) {
             String msg = String.format("[RestClient] [PaymentInstructionClient#update] error: %s", e);
             logger.error(msg);
@@ -78,7 +82,9 @@ public class PaymentInstructionClient {
         try {
             logger.info("[RestClient] [PaymentInstructionClient#search] with req: {}", req);
             PaymentInstructionResp[] restArray = restTemplate.getForObject(buildSearchUrl(PAYMENT_INSTRUCTION_BASE_URL, req), PaymentInstructionResp[].class);
-            return restArray == null ? Collections.emptyList() : Arrays.asList(restArray);
+            List<PaymentInstructionResp> respList = restArray == null ? Collections.emptyList() : Arrays.asList(restArray);
+            logger.info("[RestClient] [PaymentInstructionClient#search] response size: {}", respList.size());
+            return respList;
         } catch (Exception e) {
             String msg = String.format("[RestClient] [PaymentInstructionClient#search] error: %s", e);
             logger.error(msg);
@@ -89,7 +95,9 @@ public class PaymentInstructionClient {
     private ResponseEntity<PaymentInstructionResp> getByIdEntity(Long id) {
         try {
             logger.info("[RestClient] [PaymentInstructionClient#getById] with id: {}", id);
-            return restTemplate.getForEntity(buildURIWithId(PAYMENT_INSTRUCTION_BASE_URL, id), PaymentInstructionResp.class);
+            ResponseEntity<PaymentInstructionResp> response = restTemplate.getForEntity(buildURIWithId(PAYMENT_INSTRUCTION_BASE_URL, id), PaymentInstructionResp.class);
+            logger.info("[RestClient] [PaymentInstructionClient#getById] response: {}", response);
+            return response;
         } catch (HttpClientErrorException.NotFound e) {
             String msg = String.format("[RestClient] [PaymentInstructionClient#getById] payment with id: %s not found, error: %s", id, e);
             logger.error(msg);

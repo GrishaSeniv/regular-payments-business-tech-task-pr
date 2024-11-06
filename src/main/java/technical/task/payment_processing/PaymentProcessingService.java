@@ -3,6 +3,7 @@ package technical.task.payment_processing;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import technical.task.domain.PaymentProcessingAware;
 import technical.task.domain.client.PaymentInstructionClient;
 import technical.task.domain.client.TransactionClient;
 import technical.task.domain.common.Preconditions;
@@ -24,7 +25,7 @@ import static technical.task.payment_processing.Converter.toTransactionUpdateReq
  * @version 2024-11-04
  */
 @Service
-class PaymentProcessingService {
+class PaymentProcessingService implements PaymentProcessingAware {
     private final Logger logger = LoggerFactory.getLogger(PaymentProcessingService.class);
     private final PaymentInstructionClient paymentInstructionClient;
     private final TransactionClient transactionClient;
@@ -35,6 +36,29 @@ class PaymentProcessingService {
         this.transactionClient = transactionClient;
     }
 
+    @Override
+    public void processDuePayments() {
+        int batchSize = 1000;
+        int offset = 0;
+        boolean hasMorePayments = true;
+
+        while (hasMorePayments) {
+            List<PaymentInstructionResp> paymentsBatch = searchPayments(
+                    (PaymentInstructionSearch) new PaymentInstructionSearch().setLimit(batchSize).setOffset(offset));
+            if (paymentsBatch.isEmpty()) {
+                hasMorePayments = false;
+            } else {
+                paymentsBatch.parallelStream().forEach(payment -> {
+                    try {
+                        processDebit(payment);
+                    } catch (DebitPaymentBadRequestException ignore) {
+                    }
+                });
+                offset += batchSize;
+            }
+        }
+    }
+
     public PaymentInstructionResp createPayment(PaymentInstructionReq req) {
         validatePaymentReq(req);
         logger.info("Create payment request");
@@ -42,22 +66,8 @@ class PaymentProcessingService {
     }
 
     public TransactionResp debitPayment(Long paymentId) {
-        logger.info("Debit payment started for paymentId: {}", paymentId);
         PaymentInstructionResp payment = paymentInstructionClient.getById(paymentId);
-        TransactionResp lastTransaction = getLastTransaction(paymentId);
-        if (lastTransaction == null) {
-            logger.info("Creating first transaction for paymentId: {}", paymentId);
-            return transactionClient.create(toTransactionCreateReq(payment));
-        }
-        LocalDateTime lastTransactionDate = lastTransaction.transactionDate();
-        LocalDateTime nextDueDate = lastTransactionDate.plus(payment.periodInterval());
-        if (LocalDateTime.now().isAfter(nextDueDate)) {
-            logger.info("Creating next transaction for paymentId: {}", paymentId);
-            return transactionClient.create(toTransactionCreateReq(payment));
-        }
-        String msg = "Payment is not yet due for debit.";
-        logger.error(msg);
-        throw new DebitPaymentBadRequestException(msg);
+        return processDebit(payment);
     }
 
     public TransactionResp markTransactionAsStorned(Long transactionId) {
@@ -82,6 +92,25 @@ class PaymentProcessingService {
      */
     private void validatePaymentReq(PaymentInstructionReq req) {
         Preconditions.checkFullNameStr(req.payerName());
+    }
+
+    private TransactionResp processDebit(PaymentInstructionResp payment) {
+        Long paymentId = payment.id();
+        logger.info("Debit payment started for paymentId: {}", paymentId);
+        TransactionResp lastTransaction = getLastTransaction(paymentId);
+        if (lastTransaction == null) {
+            logger.info("Creating first transaction for paymentId: {}", paymentId);
+            return transactionClient.create(toTransactionCreateReq(payment));
+        }
+        LocalDateTime lastTransactionDate = lastTransaction.transactionDate();
+        LocalDateTime nextDueDate = lastTransactionDate.plus(payment.periodInterval());
+        if (LocalDateTime.now().isAfter(nextDueDate)) {
+            logger.info("Creating next transaction for paymentId: {}", paymentId);
+            return transactionClient.create(toTransactionCreateReq(payment));
+        }
+        String msg = "Payment is not yet due for debit.";
+        logger.error(msg);
+        throw new DebitPaymentBadRequestException(msg);
     }
 
     private TransactionResp getLastTransaction(Long paymentId) {
