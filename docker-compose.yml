@@ -14,4 +14,3 @@ services:
 networks:
   springboot-postgresql-network:
     name: springboot-postgresql-network
-    external: true
