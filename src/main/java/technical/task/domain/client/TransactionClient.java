@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import technical.task.domain.common.ApiUrls;
 import technical.task.domain.exception.TransactionInternalServerException;
 import technical.task.domain.model.transaction.TransactionCreateReq;
 import technical.task.domain.model.transaction.TransactionResp;
@@ -21,7 +22,6 @@ import java.util.List;
 import static technical.task.domain.client.ClientUtils.buildSearchUrl;
 import static technical.task.domain.client.ClientUtils.buildURIWithId;
 import static technical.task.domain.client.ClientUtils.getHttpEntity;
-import static technical.task.domain.common.Constants.TRANSACTION_BASE_URL;
 
 /**
  * @author Hryhorii Seniv
@@ -31,15 +31,17 @@ import static technical.task.domain.common.Constants.TRANSACTION_BASE_URL;
 public class TransactionClient {
     private static final Logger logger = LoggerFactory.getLogger(TransactionClient.class);
     private final RestTemplate restTemplate;
+    private final String transactionBaseUrl;
 
-    public TransactionClient(RestTemplate restTemplate) {
+    public TransactionClient(RestTemplate restTemplate, ApiUrls apiUrls) {
         this.restTemplate = restTemplate;
+        this.transactionBaseUrl = apiUrls.getTransactionBaseUrl();
     }
 
     public TransactionResp create(TransactionCreateReq req) {
         try {
             logger.info("[RestClient] [TransactionClient#create] with req: {}", req);
-            TransactionResp transactionResp = restTemplate.postForObject(TRANSACTION_BASE_URL, req, TransactionResp.class);
+            TransactionResp transactionResp = restTemplate.postForObject(transactionBaseUrl, req, TransactionResp.class);
             logger.info("[RestClient] [TransactionClient#create] transaction resp: {}", transactionResp);
             return transactionResp;
         } catch (Exception e) {
@@ -53,7 +55,7 @@ public class TransactionClient {
         logger.info("[RestClient] [TransactionClient#update] with req: {} and id: {}", req, id);
         try {
             ResponseEntity<TransactionResp> resp = restTemplate.exchange(
-                    buildURIWithId(TRANSACTION_BASE_URL, id),
+                    buildURIWithId(transactionBaseUrl, id),
                     HttpMethod.PATCH,
                     getHttpEntity(req),
                     TransactionResp.class
@@ -82,7 +84,7 @@ public class TransactionClient {
     public List<TransactionResp> search(TransactionSearch req) {
         try {
             logger.info("[RestClient] [TransactionClient#search] with req: {}", req);
-            TransactionResp[] arr = restTemplate.getForObject(buildSearchUrl(TRANSACTION_BASE_URL, req), TransactionResp[].class);
+            TransactionResp[] arr = restTemplate.getForObject(buildSearchUrl(transactionBaseUrl, req), TransactionResp[].class);
             List<TransactionResp> respList = arr == null ? Collections.emptyList() : Arrays.asList(arr);
             logger.info("[RestClient] [TransactionClient#search] transaction resp size: {}", respList.size());
             return respList;
@@ -96,7 +98,7 @@ public class TransactionClient {
     private ResponseEntity<TransactionResp> getByIdEntity(Long id) {
         try {
             logger.info("[RestClient] [TransactionClient#getById] with id: {}", id);
-            ResponseEntity<TransactionResp> responseEntity = restTemplate.getForEntity(buildURIWithId(TRANSACTION_BASE_URL, id), TransactionResp.class);
+            ResponseEntity<TransactionResp> responseEntity = restTemplate.getForEntity(buildURIWithId(transactionBaseUrl, id), TransactionResp.class);
             logger.info("[RestClient] [TransactionClient#getById] transaction resp: {}", responseEntity);
             return responseEntity;
         } catch (HttpClientErrorException.NotFound e) {

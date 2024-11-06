@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  springboot-backend:
+    build: .
+    container_name: regular-payments-business
+    environment:
+      TARGET_HOST: "regular-payments-dao"
+    ports:
+      - "8081:8081"
+    networks:
+      - springboot-postgresql-network
+
+networks:
+  springboot-postgresql-network:
+    name: springboot-postgresql-network
+    external: true

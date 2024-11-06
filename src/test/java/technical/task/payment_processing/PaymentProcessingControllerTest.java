@@ -7,6 +7,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.test.web.client.MockRestServiceServer;
+import technical.task.domain.common.ApiUrls;
 import technical.task.domain.exception.DebitPaymentBadRequestException;
 import technical.task.domain.model.payment_instruction.PaymentInstructionReq;
 import technical.task.domain.model.payment_instruction.PaymentInstructionResp;
@@ -20,8 +21,6 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static technical.task.domain.client.ClientUtils.buildURIWithId;
-import static technical.task.domain.common.Constants.PAYMENT_INSTRUCTION_BASE_URL;
-import static technical.task.domain.common.Constants.TRANSACTION_BASE_URL;
 import static technical.task.domain.common.JsonUtils.toJson;
 import static technical.task.domain.model.PaymentInstructionTestData.createPaymentInstructionReq;
 import static technical.task.domain.model.PaymentInstructionTestData.createPaymentInstructionResp;
@@ -32,14 +31,21 @@ import static technical.task.domain.model.TransactionTestData.updatedStornedTran
 @Component
 public class PaymentProcessingControllerTest {
     @Autowired
-    PaymentProcessingController paymentProcessingController;
+    private PaymentProcessingController paymentProcessingController;
+    private final String paymentInstructionBaseUrl;
+    private final String transactionBaseUrl;
+
+    public PaymentProcessingControllerTest(ApiUrls apiUrls) {
+        this.paymentInstructionBaseUrl = apiUrls.getPaymentInstructionBaseUrl();
+        this.transactionBaseUrl = apiUrls.getTransactionBaseUrl();
+    }
 
     public void createPaymentTest(MockRestServiceServer mockServer) {
         PaymentInstructionReq req = createPaymentInstructionReq();
         PaymentInstructionResp expectedResp = createPaymentInstructionResp();
 
         // mock external rest call to dao service(payment - create)
-        mockServer.expect(requestTo(PAYMENT_INSTRUCTION_BASE_URL))
+        mockServer.expect(requestTo(paymentInstructionBaseUrl))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(content().json(toJson(req)))
                 .andRespond(withSuccess(toJson(expectedResp), MediaType.APPLICATION_JSON));
@@ -54,12 +60,12 @@ public class PaymentProcessingControllerTest {
         TransactionResp transactionResp1 = createTransactionResp1(resp);
 
         // mock external rest calls to dao service(payment - getById)
-        mockServer.expect(requestTo(buildURIWithId(PAYMENT_INSTRUCTION_BASE_URL, resp.id())))
+        mockServer.expect(requestTo(buildURIWithId(paymentInstructionBaseUrl, resp.id())))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(toJson(resp), MediaType.APPLICATION_JSON));
 
         // mock external rest calls to dao service(transaction - getByPaymentId)
-        mockServer.expect(requestTo(containsString(TRANSACTION_BASE_URL)))
+        mockServer.expect(requestTo(containsString(transactionBaseUrl)))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withSuccess(toJson(List.of(transactionResp1)), MediaType.APPLICATION_JSON));
 
@@ -80,7 +86,7 @@ public class PaymentProcessingControllerTest {
         TransactionResp updatedStornedTransactionResp = updatedStornedTransactionResp(transactionResp1);
 
         // mock external rest calls to dao service(transaction - update)
-        mockServer.expect(requestTo(buildURIWithId(TRANSACTION_BASE_URL, transactionId)))
+        mockServer.expect(requestTo(buildURIWithId(transactionBaseUrl, transactionId)))
                 .andExpect(method(HttpMethod.PATCH))
                 .andExpect(content().json(toJson(createTransactionUpdateReq())))
                 .andRespond(withSuccess(toJson(updatedStornedTransactionResp), MediaType.APPLICATION_JSON));

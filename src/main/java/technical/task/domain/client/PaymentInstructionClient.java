@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
+import technical.task.domain.common.ApiUrls;
 import technical.task.domain.exception.PaymentInstructionInternalServerException;
 import technical.task.domain.model.payment_instruction.PaymentInstructionReq;
 import technical.task.domain.model.payment_instruction.PaymentInstructionResp;
@@ -20,7 +21,6 @@ import java.util.List;
 import static technical.task.domain.client.ClientUtils.buildSearchUrl;
 import static technical.task.domain.client.ClientUtils.buildURIWithId;
 import static technical.task.domain.client.ClientUtils.getHttpEntity;
-import static technical.task.domain.common.Constants.PAYMENT_INSTRUCTION_BASE_URL;
 
 /**
  * @author Hryhorii Seniv
@@ -30,15 +30,17 @@ import static technical.task.domain.common.Constants.PAYMENT_INSTRUCTION_BASE_UR
 public class PaymentInstructionClient {
     private static final Logger logger = LoggerFactory.getLogger(PaymentInstructionClient.class);
     private final RestTemplate restTemplate;
+    private final String paymentInstructionBaseUrl;
 
-    public PaymentInstructionClient(RestTemplate restTemplate) {
+    public PaymentInstructionClient(RestTemplate restTemplate, ApiUrls apiUrls) {
         this.restTemplate = restTemplate;
+        this.paymentInstructionBaseUrl = apiUrls.getPaymentInstructionBaseUrl();
     }
 
     public PaymentInstructionResp create(PaymentInstructionReq req) {
         try {
             logger.info("[RestClient] [PaymentInstructionClient#create] with req: {}", req);
-            PaymentInstructionResp resp = restTemplate.postForObject(PAYMENT_INSTRUCTION_BASE_URL, req, PaymentInstructionResp.class);
+            PaymentInstructionResp resp = restTemplate.postForObject(paymentInstructionBaseUrl, req, PaymentInstructionResp.class);
             logger.info("[RestClient] [PaymentInstructionClient#create] response: {}", resp);
             return resp;
         } catch (Exception e) {
@@ -52,7 +54,7 @@ public class PaymentInstructionClient {
         logger.info("[RestClient] [PaymentInstructionClient#update] with req: {} and id: {}", req, id);
         try {
             ResponseEntity<PaymentInstructionResp> resp = restTemplate.exchange(
-                    buildURIWithId(PAYMENT_INSTRUCTION_BASE_URL, id),
+                    buildURIWithId(paymentInstructionBaseUrl, id),
                     HttpMethod.PUT,
                     getHttpEntity(req),
                     PaymentInstructionResp.class
@@ -81,7 +83,7 @@ public class PaymentInstructionClient {
     public List<PaymentInstructionResp> search(PaymentInstructionSearch req) {
         try {
             logger.info("[RestClient] [PaymentInstructionClient#search] with req: {}", req);
-            PaymentInstructionResp[] restArray = restTemplate.getForObject(buildSearchUrl(PAYMENT_INSTRUCTION_BASE_URL, req), PaymentInstructionResp[].class);
+            PaymentInstructionResp[] restArray = restTemplate.getForObject(buildSearchUrl(paymentInstructionBaseUrl, req), PaymentInstructionResp[].class);
             List<PaymentInstructionResp> respList = restArray == null ? Collections.emptyList() : Arrays.asList(restArray);
             logger.info("[RestClient] [PaymentInstructionClient#search] response size: {}", respList.size());
             return respList;
@@ -95,7 +97,7 @@ public class PaymentInstructionClient {
     private ResponseEntity<PaymentInstructionResp> getByIdEntity(Long id) {
         try {
             logger.info("[RestClient] [PaymentInstructionClient#getById] with id: {}", id);
-            ResponseEntity<PaymentInstructionResp> response = restTemplate.getForEntity(buildURIWithId(PAYMENT_INSTRUCTION_BASE_URL, id), PaymentInstructionResp.class);
+            ResponseEntity<PaymentInstructionResp> response = restTemplate.getForEntity(buildURIWithId(paymentInstructionBaseUrl, id), PaymentInstructionResp.class);
             logger.info("[RestClient] [PaymentInstructionClient#getById] response: {}", response);
             return response;
         } catch (HttpClientErrorException.NotFound e) {
