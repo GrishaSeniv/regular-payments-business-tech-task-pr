@@ -39,7 +39,9 @@ public class TransactionClient {
     public TransactionResp create(TransactionCreateReq req) {
         try {
             logger.info("[RestClient] [TransactionClient#create] with req: {}", req);
-            return restTemplate.postForObject(TRANSACTION_BASE_URL, req, TransactionResp.class);
+            TransactionResp transactionResp = restTemplate.postForObject(TRANSACTION_BASE_URL, req, TransactionResp.class);
+            logger.info("[RestClient] [TransactionClient#create] transaction resp: {}", transactionResp);
+            return transactionResp;
         } catch (Exception e) {
             String msg = String.format("[RestClient] [TransactionClient#create] error: %s", e);
             logger.error(msg);
@@ -56,7 +58,9 @@ public class TransactionClient {
                     getHttpEntity(req),
                     TransactionResp.class
             );
-            return resp.getBody();
+            TransactionResp body = resp.getBody();
+            logger.info("[RestClient] [TransactionClient#update] transaction resp: {}", body);
+            return body;
         } catch (Exception e) {
             String msg = String.format("[RestClient] [TransactionClient#update] error: %s", e);
             logger.error(msg);
@@ -79,7 +83,9 @@ public class TransactionClient {
         try {
             logger.info("[RestClient] [TransactionClient#search] with req: {}", req);
             TransactionResp[] arr = restTemplate.getForObject(buildSearchUrl(TRANSACTION_BASE_URL, req), TransactionResp[].class);
-            return arr == null ? Collections.emptyList() : Arrays.asList(arr);
+            List<TransactionResp> respList = arr == null ? Collections.emptyList() : Arrays.asList(arr);
+            logger.info("[RestClient] [TransactionClient#search] transaction resp size: {}", respList.size());
+            return respList;
         } catch (Exception e) {
             String msg = String.format("[RestClient] [TransactionClient#search] error: %s", e);
             logger.error(msg);
@@ -90,7 +96,9 @@ public class TransactionClient {
     private ResponseEntity<TransactionResp> getByIdEntity(Long id) {
         try {
             logger.info("[RestClient] [TransactionClient#getById] with id: {}", id);
-            return restTemplate.getForEntity(buildURIWithId(TRANSACTION_BASE_URL, id), TransactionResp.class);
+            ResponseEntity<TransactionResp> responseEntity = restTemplate.getForEntity(buildURIWithId(TRANSACTION_BASE_URL, id), TransactionResp.class);
+            logger.info("[RestClient] [TransactionClient#getById] transaction resp: {}", responseEntity);
+            return responseEntity;
         } catch (HttpClientErrorException.NotFound e) {
             String msg = String.format("[RestClient] [TransactionClient#getById] payment with id: %s not found, error: %s", id, e);
             logger.error(msg);
